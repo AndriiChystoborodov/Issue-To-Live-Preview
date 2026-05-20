@@ -1,0 +1,30 @@
+{
+  "name": "issue-to-live-preview-pipeline",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Powercoders-Bootcamp/issue-to-live-preview-pipeline.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Powercoders-Bootcamp/issue-to-live-preview-pipeline/issues"
+  },
+  "homepage": "https://github.com/Powercoders-Bootcamp/issue-to-live-preview-pipeline#readme",
+  "dependencies": {
+    "@google/genai": "^2.4.0",
+    "@slack/bolt": "^4.7.2",
+    "dotenv": "^17.4.2"
+  },
+  "devDependencies": {
+    "@types/node": "^25.9.1",
+    "ts-node": "^10.9.2",
+    "typescript": "^6.0.3"
+  }
+}
