@@ -72,7 +72,6 @@ This project supports two execution modes:
 - **Development Mode** → for local coding, testing, and debugging
 - **Production Mode** → for deployment environments such as Render, Docker, or CI/CD pipelines
 
----
 
 ### Development Mode
 
@@ -88,7 +87,6 @@ If the Slack connection is successful, you should see:
 ⚡️ Slack Bolt app is running in Socket Mode!
 ```
 
----
 
 ### Production Mode
 
@@ -109,7 +107,6 @@ dist/
 └── index.js
 ```
 
----
 
 #### Step 2 — Start the production application
 
@@ -125,7 +122,6 @@ node dist/index.js
 
 which starts the compiled production-ready application.
 
----
 
 ### Production Workflow Summary
 
@@ -145,7 +141,6 @@ npm start
 | `npm run build` | Compiles TypeScript into JavaScript |
 | `npm start` | Starts the compiled production application |
 
----
 
 ### Notes
 
