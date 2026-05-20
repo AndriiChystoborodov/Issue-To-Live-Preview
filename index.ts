@@ -24,6 +24,9 @@ const app = new App({
 // Keys are formatted as `${channelId}-${threadTs}` to isolate threads.
 const conversationHistory = new Map<string, any[]>();
 
+// Global reference for the dynamically imported 'eld' package
+let eld: any;
+
 app.message(async ({ message, say }) => {
   // Ignore events triggered by bots or message edits to prevent infinite loops
   if (message.subtype === 'bot_message' || message.subtype === 'message_changed') return;
@@ -41,15 +44,11 @@ app.message(async ({ message, say }) => {
     // ----------------------------------------------------------------------
     // 1. Language Gatekeeper
     // ----------------------------------------------------------------------
-    // Utilize a fast classification call to strictly enforce the language policy.
-    const langCheckResult = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
-      contents: `You are a strict language classifier. Return EXACTLY 'fr' if the text is predominantly French, 'en' if it is predominantly English, or 'other' if it is neither. Evaluate this text: "${userText}"`
-    });
-    
-    const detectedLang = langCheckResult.text?.trim().toLowerCase() || 'other';
+    // Utilize ELD (Efficient Language Detector) for offline, zero-dependency, and extremely fast language classification.
+    const langCheckResult = eld.detect(userText);
+    const detectedLang = langCheckResult.language;
 
-    if (!detectedLang.includes('fr') && !detectedLang.includes('en')) {
+    if (detectedLang !== 'en' && detectedLang !== 'fr') {
       await say({
         text: "I'm sorry, but I only support English and French. / Je suis désolé, mais je ne prends en charge que l'anglais et le français.",
         thread_ts: threadTs
@@ -101,6 +100,12 @@ app.message(async ({ message, say }) => {
 });
 
 (async () => {
+  // Dynamically import the ESM-only 'eld' package to avoid CommonJS require() errors
+  const eldModule = await import('eld');
+  eld = eldModule.eld;
+
+  // Initialize the language detector with the 'large' database before starting the app
+  await eld.load('large');
   await app.start();
   console.log('⚡️ Slack Bolt app is running in Socket Mode!');
 })();

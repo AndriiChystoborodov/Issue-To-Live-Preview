@@ -20,7 +20,8 @@
   "dependencies": {
     "@google/genai": "^2.4.0",
     "@slack/bolt": "^4.7.2",
-    "dotenv": "^17.4.2"
+    "dotenv": "^17.4.2",
+    "eld": "^2.0.3"
   },
   "devDependencies": {
     "@types/node": "^25.9.1",
