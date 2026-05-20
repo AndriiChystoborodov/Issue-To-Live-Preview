@@ -67,14 +67,90 @@ GEMINI_API_KEY=AIzaSy...
 
 ## 🏃‍♂️ Running the Bot
 
-Since the project is written in TypeScript, you can use `ts-node` to spin up the application quickly in your development environment:
+This project supports two execution modes:
+
+- **Development Mode** → for local coding, testing, and debugging
+- **Production Mode** → for deployment environments such as Render, Docker, or CI/CD pipelines
+
+---
+
+### Development Mode
+
+Run the application locally during development:
 
 ```bash
-npx ts-node index.ts
+npm run dev
 ```
 
-You should see the following output in your console if the connection to Slack is successful:
+If the Slack connection is successful, you should see:
 
 ```text
 ⚡️ Slack Bolt app is running in Socket Mode!
+```
+
+---
+
+### Production Mode
+
+In production environments, TypeScript should first be compiled into JavaScript.
+
+#### Step 1 — Build the project
+
+```bash
+npm run build
+```
+
+This command runs the TypeScript compiler (`tsc`) and generates the compiled JavaScript output inside the `dist/` directory.
+
+Example generated structure:
+
+```text
+dist/
+└── index.js
+```
+
+---
+
+#### Step 2 — Start the production application
+
+```bash
+npm start
+```
+
+This runs:
+
+```bash
+node dist/index.js
+```
+
+which starts the compiled production-ready application.
+
+---
+
+### Production Workflow Summary
+
+Typical production workflow:
+
+```bash
+npm ci
+npm run build
+npm start
+```
+
+#### What each command does
+
+| Command | Purpose |
+|---|---|
+| `npm ci` | Installs exact dependency versions from `package-lock.json` |
+| `npm run build` | Compiles TypeScript into JavaScript |
+| `npm start` | Starts the compiled production application |
+
+---
+
+### Notes
+
+- The `dist/` directory is automatically generated during build and should not be manually edited.
+- The `.env` file contains sensitive credentials and should never be committed to GitHub.
+- Ensure Node.js version 20 or higher is installed, as some dependencies require Node.js >=20.## 🏃‍♂️ Running the Bot
+
 ```
