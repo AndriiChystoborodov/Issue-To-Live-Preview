@@ -24,8 +24,10 @@ const app = new App({
 // Keys are formatted as `${channelId}-${threadTs}` to isolate threads.
 const conversationHistory = new Map<string, any[]>();
 
-// Global reference for the dynamically imported 'eld' package
-let eld: any;
+// Global reference for the dynamically imported 'eld' package.
+// We utilize a dynamic type query and intersect it to enforce strict typing, 
+// ensuring TypeScript understands both the detect() and the dynamic load() methods.
+let eld: typeof import('eld').eld & { load(database: string): Promise<void> };
 
 app.message(async ({ message, say }) => {
   // Ignore events triggered by bots or message edits to prevent infinite loops
@@ -48,12 +50,18 @@ app.message(async ({ message, say }) => {
     const langCheckResult = eld.detect(userText);
     const detectedLang = langCheckResult.language;
 
-    if (detectedLang !== 'en' && detectedLang !== 'fr') {
-      await say({
-        text: "I'm sorry, but I only support English and French. / Je suis désolé, mais je ne prends en charge que l'anglais et le français.",
-        thread_ts: threadTs
-      });
-      return;
+    // Documented Fallback for Ambiguous Detection:
+    // When a user writes slang or very short text ("ok", "lol", "brb"), 
+    // ELD might flag the result as unreliable or return an empty string.
+    // In these cases, we bypass the strict gatekeeper and let the Gemini LLM handle it.
+    if (detectedLang !== '' && langCheckResult.isReliable()) {
+      if (detectedLang !== 'en' && detectedLang !== 'fr') {
+        await say({
+          text: "I'm sorry, but I only support English and French. / Je suis désolé, mais je ne prends en charge que l'anglais et le français.",
+          thread_ts: threadTs
+        });
+        return;
+      }
     }
 
     // ----------------------------------------------------------------------
@@ -102,7 +110,7 @@ app.message(async ({ message, say }) => {
 (async () => {
   // Dynamically import the ESM-only 'eld' package to avoid CommonJS require() errors
   const eldModule = await import('eld');
-  eld = eldModule.eld;
+  eld = eldModule.eld as typeof eld;
 
   // Initialize the language detector with the 'large' database before starting the app
   await eld.load('large');
