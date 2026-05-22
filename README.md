@@ -72,7 +72,6 @@ This project supports two execution modes:
 - **Development Mode** → for local coding, testing, and debugging
 - **Production Mode** → for deployment environments such as Render, Docker, or CI/CD pipelines
 
-
 ### Development Mode
 
 Run the application locally during development:
@@ -86,7 +85,6 @@ If the Slack connection is successful, you should see:
 ```text
 ⚡️ Slack Bolt app is running in Socket Mode!
 ```
-
 
 ### Production Mode
 
@@ -107,7 +105,6 @@ dist/
 └── index.js
 ```
 
-
 #### Step 2 — Start the production application
 
 ```bash
@@ -122,7 +119,6 @@ node dist/index.js
 
 which starts the compiled production-ready application.
 
-
 ### Production Workflow Summary
 
 Typical production workflow:
@@ -136,16 +132,13 @@ npm start
 #### What each command does
 
 | Command | Purpose |
-|---|---|
+| --- | --- |
 | `npm ci` | Installs exact dependency versions from `package-lock.json` |
 | `npm run build` | Compiles TypeScript into JavaScript |
 | `npm start` | Starts the compiled production application |
-
 
 ### Notes
 
 - The `dist/` directory is automatically generated during build and should not be manually edited.
 - The `.env` file contains sensitive credentials and should never be committed to GitHub.
 - Ensure Node.js version 20 or higher is installed, as some dependencies require Node.js >=20.## 🏃‍♂️ Running the Bot
-
-```
