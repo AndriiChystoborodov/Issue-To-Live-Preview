@@ -30,7 +30,7 @@ A robust, context-aware Slack bot powered by Google's Gemini 2.5 Flash model and
 ## 🏗️ Architecture Overview
 
 1. **Event Reception**: The bot listens to incoming messages, inherently ignoring other bots and message edits to prevent infinite loops.
-2. **Language Classification (Gatekeeper)**: Upon receiving a message, the bot first queries the Gemini model to strictly classify the language. If the text is neither English nor French, execution is halted with a bilingual decline message.
+2. **Language Classification (Gatekeeper)**: Upon receiving a message, the bot first uses `eld` (Efficient Language Detector), a fast and lightweight local library, to classify the language. This is done offline without any API calls. If the text is neither English nor French, execution is halted with a bilingual decline message.
 3. **State Management**: The bot records the `thread_ts` (or standard message timestamp) and channel ID to map an isolated conversation session in-memory.
 4. **LLM Execution**: The accumulated message history for that specific thread is passed to Gemini, alongside stringent system instructions governing professional and secure behavior.
 5. **Slack Output**: The generated response is returned and posted back into the original Slack thread seamlessly.

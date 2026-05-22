@@ -24,6 +24,10 @@ const app = new App({
 // Keys are formatted as `${channelId}-${threadTs}` to isolate threads.
 const conversationHistory = new Map<string, any[]>();
 
+// Global reference for the dynamically imported 'eld' package.
+// We extract the specific variant from the package's own union type that includes the 'load' method.
+let eld: Extract<typeof import('eld').eld, { load: any }>;
+
 app.message(async ({ message, say }) => {
   // Ignore events triggered by bots or message edits to prevent infinite loops
   if (message.subtype === 'bot_message' || message.subtype === 'message_changed') return;
@@ -41,20 +45,34 @@ app.message(async ({ message, say }) => {
     // ----------------------------------------------------------------------
     // 1. Language Gatekeeper
     // ----------------------------------------------------------------------
-    // Utilize a fast classification call to strictly enforce the language policy.
-    const langCheckResult = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
-      contents: `You are a strict language classifier. Return EXACTLY 'fr' if the text is predominantly French, 'en' if it is predominantly English, or 'other' if it is neither. Evaluate this text: "${userText}"`
-    });
+    // Utilize ELD (Efficient Language Detector) for offline, zero-dependency, and extremely fast language classification.
+    const langCheckResult = eld.detect(userText);
+    const detectedLang = langCheckResult.language;
     
-    const detectedLang = langCheckResult.text?.trim().toLowerCase() || 'other';
+    // Determine if this is the start of a brand new conversation
+    const isNewThread = !conversationHistory.has(sessionId) || conversationHistory.get(sessionId)!.length === 0;
 
-    if (!detectedLang.includes('fr') && !detectedLang.includes('en')) {
-      await say({
-        text: "I'm sorry, but I only support English and French. / Je suis désolé, mais je ne prends en charge que l'anglais et le français.",
-        thread_ts: threadTs
-      });
-      return;
+    // Documented Fallback for Ambiguous Detection:
+    // When a user writes slang or very short text ("ok", "lol", "brb"), 
+    // ELD might flag the result as unreliable or return an empty string.
+    if (detectedLang === '' || !langCheckResult.isReliable()) {
+      // If this is the first message in a thread, prompt for more context rather than guessing.
+      if (isNewThread) {
+        await say({
+          text: "Could you please provide a bit more context? I need a slightly longer message to detect whether you are speaking English or French. / Pourriez-vous fournir un peu plus de contexte ? J'ai besoin d'un message un peu plus long pour détecter si vous parlez anglais ou français.",
+          thread_ts: threadTs
+        });
+        return;
+      }
+      // If it's an ongoing thread, bypass the gatekeeper and rely on the LLM's existing context.
+    } else {
+      if (detectedLang !== 'en' && detectedLang !== 'fr') {
+        await say({
+          text: "I'm sorry, but I only support English and French. / Je suis désolé, mais je ne prends en charge que l'anglais et le français.",
+          thread_ts: threadTs
+        });
+        return;
+      }
     }
 
     // ----------------------------------------------------------------------
@@ -101,6 +119,12 @@ app.message(async ({ message, say }) => {
 });
 
 (async () => {
+  // Dynamically import the ESM-only 'eld' package to avoid CommonJS require() errors
+  const eldModule = await import('eld');
+  eld = eldModule.eld as typeof eld;
+
+  // Initialize the language detector with the 'large' database before starting the app
+  await eld.load('large');
   await app.start();
   console.log('⚡️ Slack Bolt app is running in Socket Mode!');
 })();
