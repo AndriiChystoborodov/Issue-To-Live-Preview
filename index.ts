@@ -42,6 +42,12 @@ const app = new App({
 const conversationHistory = new Map<string, any[]>();
 
 /**
+ * In-memory cache for user profile information.
+ * Maps Slack userId to their extended profile object to prevent redundant API calls.
+ */
+const userInfoCache = new Map<string, any>();
+
+/**
  * Global reference for the dynamically imported 'eld' package (Efficient Language Detector).
  * Extracted from the package's union type so we can strictly type the `.load()` method.
  */
@@ -101,11 +107,16 @@ app.message(async ({ message, say, client }) => {
    */
   let userInfo = null;
   if (userId) {
-    try {
-      const userResponse = await client.users.info({ user: userId });
-      userInfo = userResponse.user;
-    } catch (error) {
-      console.warn(`Could not fetch detailed user info for ${userId}. Check if 'users:read' scope is enabled. Error details:`, error);
+    if (userInfoCache.has(userId)) {
+      userInfo = userInfoCache.get(userId);
+    } else {
+      try {
+        const userResponse = await client.users.info({ user: userId });
+        userInfo = userResponse.user;
+        userInfoCache.set(userId, userInfo);
+      } catch (error) {
+        console.warn(`Could not fetch detailed user info for ${userId}. Check if 'users:read' scope is enabled. Error details:`, error);
+      }
     }
   }
 
