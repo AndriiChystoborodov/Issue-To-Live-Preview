@@ -8,6 +8,7 @@ A robust, context-aware Slack bot powered by Google's Gemini 2.5 Flash model and
 - **Google Gemini Powered**: Utilizes the fast and capable `gemini-2.5-flash` model (`@google/genai`) for highly intelligent and context-aware responses.
 - **Language Gatekeeper**: Built-in language classification ensures the bot only responds to messages predominantly in **English** or **French**.
 - **Thread-Aware Memory**: Maintains conversational context in an isolated, per-thread memory store. This allows for natural back-and-forth interactions without cross-thread contamination.
+- **User Profile Augmentation**: Fetches detailed Slack user profiles (real name, email, timezone) to personalize the bot's responses.
 - **Security First**: Adheres to OWASP best practices via strict system instructions, preventing unauthorized commands, prompt leaking, and disclosure of sensitive information (PII, HR records, etc.).
 
 ## 🚀 Prerequisites
@@ -15,8 +16,13 @@ A robust, context-aware Slack bot powered by Google's Gemini 2.5 Flash model and
 - Node.js (v18 or higher recommended)
 - A Slack App configured with:
   - **Socket Mode** enabled.
-  - **Event Subscriptions** enabled (subscribing to `message.channels` or `app_mention` events).
-  - **Bot Token** (`xoxb-...`) with the necessary chat and history scopes.
+  - **Event Subscriptions** enabled (subscribing to `message.channels`, `message.im`, or `app_mention` events).
+  - **Bot Token** (`xoxb-...`) with the following Bot Token Scopes:
+    - `channels:history`: View messages and other content in public channels that the bot has been added to.
+    - `chat:write`: Send messages as the bot.
+    - `im:history`: View messages and other content in direct messages that the bot has been added to.
+    - `users:read`: View people in a workspace (required for basic profile info like `real_name`).
+    - `users:read.email`: View email addresses of people in a workspace (required if email extraction is necessary).
   - **App-Level Token** (`xapp-...`) with the `connections:write` scope.
 - A Google Gemini API Key
 
@@ -30,7 +36,7 @@ A robust, context-aware Slack bot powered by Google's Gemini 2.5 Flash model and
 ## 🏗️ Architecture Overview
 
 1. **Event Reception**: The bot listens to incoming messages, inherently ignoring other bots and message edits to prevent infinite loops.
-2. **Language Classification (Gatekeeper)**: Upon receiving a message, the bot first queries the Gemini model to strictly classify the language. If the text is neither English nor French, execution is halted with a bilingual decline message.
+2. **Language Classification (Gatekeeper)**: Upon receiving a message, the bot first uses `eld` (Efficient Language Detector), a fast and lightweight local library, to classify the language. This is done offline without any API calls. If the text is neither English nor French, execution is halted with a bilingual decline message.
 3. **State Management**: The bot records the `thread_ts` (or standard message timestamp) and channel ID to map an isolated conversation session in-memory.
 4. **LLM Execution**: The accumulated message history for that specific thread is passed to Gemini, alongside stringent system instructions governing professional and secure behavior.
 5. **Slack Output**: The generated response is returned and posted back into the original Slack thread seamlessly.
@@ -67,14 +73,78 @@ GEMINI_API_KEY=AIzaSy...
 
 ## 🏃‍♂️ Running the Bot
 
-Since the project is written in TypeScript, you can use `ts-node` to spin up the application quickly in your development environment:
+This project supports two execution modes:
+
+- **Development Mode** → for local coding, testing, and debugging
+- **Production Mode** → for deployment environments such as Render, Docker, or CI/CD pipelines
+
+### Development Mode
+
+Run the application locally during development:
 
 ```bash
-npx ts-node index.ts
+npm run dev
 ```
 
-You should see the following output in your console if the connection to Slack is successful:
+If the Slack connection is successful, you should see:
 
 ```text
 ⚡️ Slack Bolt app is running in Socket Mode!
 ```
+
+### Production Mode
+
+In production environments, TypeScript should first be compiled into JavaScript.
+
+#### Step 1 — Build the project
+
+```bash
+npm run build
+```
+
+This command runs the TypeScript compiler (`tsc`) and generates the compiled JavaScript output inside the `dist/` directory.
+
+Example generated structure:
+
+```text
+dist/
+└── index.js
+```
+
+#### Step 2 — Start the production application
+
+```bash
+npm start
+```
+
+This runs:
+
+```bash
+node dist/index.js
+```
+
+which starts the compiled production-ready application.
+
+### Production Workflow Summary
+
+Typical production workflow:
+
+```bash
+npm ci
+npm run build
+npm start
+```
+
+#### What each command does
+
+| Command | Purpose |
+| --- | --- |
+| `npm ci` | Installs exact dependency versions from `package-lock.json` |
+| `npm run build` | Compiles TypeScript into JavaScript |
+| `npm start` | Starts the compiled production application |
+
+### Notes
+
+- The `dist/` directory is automatically generated during build and should not be manually edited.
+- The `.env` file contains sensitive credentials and should never be committed to GitHub.
+- Ensure Node.js version 20 or higher is installed, as some dependencies require Node.js >=20.## 🏃‍♂️ Running the Bot

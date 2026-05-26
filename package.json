@@ -2,9 +2,11 @@
   "name": "issue-to-live-preview-pipeline",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
+  "main": "dist/index.js",
   "scripts": {
-    "start": "npx ts-node index.ts"
+  "dev": "ts-node index.ts",
+  "build": "tsc",
+  "start": "node dist/index.js"
   },
   "repository": {
     "type": "git",
@@ -18,9 +20,10 @@
   },
   "homepage": "https://github.com/Powercoders-Bootcamp/issue-to-live-preview-pipeline#readme",
   "dependencies": {
-    "@google/genai": "^2.4.0",
+    "@google/genai": "^2.6.0",
     "@slack/bolt": "^4.7.2",
-    "dotenv": "^17.4.2"
+    "dotenv": "^17.4.2",
+    "eld": "^2.0.3"
   },
   "devDependencies": {
     "@types/node": "^25.9.1",
