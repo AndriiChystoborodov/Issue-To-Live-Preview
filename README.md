@@ -8,6 +8,7 @@ A robust, context-aware Slack bot powered by Google's Gemini 2.5 Flash model and
 - **Google Gemini Powered**: Utilizes the fast and capable `gemini-2.5-flash` model (`@google/genai`) for highly intelligent and context-aware responses.
 - **Language Gatekeeper**: Built-in language classification ensures the bot only responds to messages predominantly in **English** or **French**.
 - **Thread-Aware Memory**: Maintains conversational context in an isolated, per-thread memory store. This allows for natural back-and-forth interactions without cross-thread contamination.
+- **User Profile Augmentation**: Fetches detailed Slack user profiles (real name, email, timezone) to personalize the bot's responses.
 - **Security First**: Adheres to OWASP best practices via strict system instructions, preventing unauthorized commands, prompt leaking, and disclosure of sensitive information (PII, HR records, etc.).
 
 ## 🚀 Prerequisites
@@ -15,8 +16,13 @@ A robust, context-aware Slack bot powered by Google's Gemini 2.5 Flash model and
 - Node.js (v18 or higher recommended)
 - A Slack App configured with:
   - **Socket Mode** enabled.
-  - **Event Subscriptions** enabled (subscribing to `message.channels` or `app_mention` events).
-  - **Bot Token** (`xoxb-...`) with the necessary chat and history scopes.
+  - **Event Subscriptions** enabled (subscribing to `message.channels`, `message.im`, or `app_mention` events).
+  - **Bot Token** (`xoxb-...`) with the following Bot Token Scopes:
+    - `channels:history`: View messages and other content in public channels that the bot has been added to.
+    - `chat:write`: Send messages as the bot.
+    - `im:history`: View messages and other content in direct messages that the bot has been added to.
+    - `users:read`: View people in a workspace (required for basic profile info like `real_name`).
+    - `users:read.email`: View email addresses of people in a workspace (required if email extraction is necessary).
   - **App-Level Token** (`xapp-...`) with the `connections:write` scope.
 - A Google Gemini API Key
 
