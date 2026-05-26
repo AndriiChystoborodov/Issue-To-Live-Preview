@@ -1,9 +1,10 @@
 name: Elio Tax Interactive Pipeline Engine
 
 on:
+  workflow_dispatch:
   push:
     branches-ignore:
-      - master
+      - main
   issue_comment:
     types: [created] # Triggers when someone comments inside a PR
 
@@ -17,7 +18,7 @@ jobs:
       pull-requests: write
     steps:
       - name: Checkout Code Base
-        uses: actions/checkout@v6
+        uses: actions/checkout@v4
 
       - name: Auto-Create Active Staging PR
         env:
@@ -26,7 +27,7 @@ jobs:
           EXISTING_PR=$(gh pr list --head "${{ github.ref_name }}" --json number --jq '.[0].number')
           if [ -z "$EXISTING_PR" ]; then
             gh pr create \
-              --base master \
+              --base main \
               --head "${{ github.ref_name }}" \
               --title "🔍 Review Needed: ${{ github.ref_name }}" \
               --body "### 📡 Staging Bot Active! \nTest the bot responses directly inside Slack. \n\nWhen ready to deploy to production, reply to this PR with the comment: \n\`/approve-merge\`"
@@ -41,7 +42,7 @@ jobs:
       pull-requests: write
     steps:
       - name: Checkout Entire Code Base
-        uses: actions/checkout@v6
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
