@@ -1,9 +1,9 @@
 name: Elio Tax Interactive Pipeline Engine
 
 on:
+  workflow_dispatch:
   push:
     branches-ignore:
-      - master
       - main
   issue_comment:
     types: [created]
@@ -15,7 +15,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Code Base
-        uses: actions/checkout@v6
+        uses: actions/checkout@v4
 
       - name: Auto-Create Active Staging PR
         env:
@@ -27,7 +27,7 @@ jobs:
           
           if [ -z "$EXISTING_PR" ]; then
             gh pr create \
-              --base master \
+              --base main \
               --head "${{ github.ref_name }}" \
               --title "🔍 Review Needed: ${{ github.ref_name }}" \
               --body "### 📡 Staging Bot Active! \nTest the bot responses directly inside Slack. \n\nWhen ready to deploy to production, reply to this PR with the comment: \n\`/approve-merge\`"
@@ -39,7 +39,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Entire Code Base
-        uses: actions/checkout@v6
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0 # Fetches master history so the merge succeeds cleanly
 
