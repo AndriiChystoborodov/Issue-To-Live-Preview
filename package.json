@@ -20,7 +20,7 @@
   },
   "homepage": "https://github.com/Powercoders-Bootcamp/issue-to-live-preview-pipeline#readme",
   "dependencies": {
-    "@google/genai": "^2.5.0",
+    "@google/genai": "^2.6.0",
     "@slack/bolt": "^4.7.2",
     "dotenv": "^17.4.2",
     "eld": "^2.0.3"
