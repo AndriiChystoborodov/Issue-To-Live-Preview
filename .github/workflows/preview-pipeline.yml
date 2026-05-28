@@ -1,5 +1,9 @@
 name: Elio Tax Interactive Pipeline Engine
 
+permissions:
+  contents: write
+  pull-requests: write
+
 on:
   workflow_dispatch:
   push:
