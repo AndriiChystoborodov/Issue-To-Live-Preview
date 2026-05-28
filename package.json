@@ -3,8 +3,9 @@
   "version": "1.0.0",
   "description": "",
   "main": "dist/index.js",
+  "type": "module",
   "scripts": {
-  "dev": "ts-node index.ts",
+  "dev": "ts-node --esm index.ts",
   "build": "tsc",
   "start": "node dist/index.js"
   },
@@ -23,11 +24,16 @@
     "@google/genai": "^2.6.0",
     "@slack/bolt": "^4.7.2",
     "dotenv": "^17.4.2",
-    "eld": "^2.0.3"
+    "eld": "^2.0.3",
+    "lru-cache": "^10.3.0",
+    "p-retry": "^6.2.1"
   },
   "devDependencies": {
-    "@types/node": "^25.9.1",
+    "@types/node": "^22.0.0",
+    "@types/p-retry": "^3.0.1",
+    "@vitejs/plugin-react": "^4.3.4",
     "ts-node": "^10.9.2",
-    "typescript": "^6.0.3"
+    "typescript": "^5.6.3",
+    "vite": "^6.0.0"
   }
 }
