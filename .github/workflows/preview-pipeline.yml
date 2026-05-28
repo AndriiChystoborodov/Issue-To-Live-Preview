@@ -19,8 +19,9 @@ jobs:
 
       - name: Auto-Create Active Staging PR
         env:
-          # Uses your custom team token to pass the organization security gateway
-          GH_TOKEN: ${{ secrets.TEAM_PIPELINE_TOKEN }} 
+          # we use secrets.GITHUB_TOKEN is automatically provided by GitHub Actions and rotates per workflow.
+
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }} 
         run: |
           echo "Checking active PR status for branch: ${{ github.ref_name }}"
           EXISTING_PR=$(gh pr list --head "${{ github.ref_name }}" --json number --jq '.[0].number')
