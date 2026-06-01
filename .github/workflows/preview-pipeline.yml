@@ -56,5 +56,5 @@ jobs:
           echo "🚀 Human approval detected by @${{ github.actor }} on PR #${PR_NUM}. Commencing release..."
           
           # Merges into master and deletes the 'sadullah' tracking branch from the repository layout
-          gh pr merge $PR_NUM --merge --delete-branch --admin
+          gh pr merge $PR_NUM --merge --delete-branch 
           echo "🎉 Production release complete. Staging server safely recycled."

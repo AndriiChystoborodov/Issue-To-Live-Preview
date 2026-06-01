@@ -1,0 +1,58 @@
+name: Gemini Issue to Live Preview
+
+on:
+  issues:
+    types: [opened]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  generate-preview:
+    if: startsWith(github.event.issue.title, '[Bot]')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.TEAM_PIPELINE_TOKEN }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Set branch name
+        id: branch
+        env:
+          ISSUE_TITLE: ${{ github.event.issue.title }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+        run: |
+          SLUG=$(echo "$ISSUE_TITLE" | tr '[:upper:]' '[:lower:]' | tr ' ' '-' | tr -cd '[:alnum:]-' | cut -c1-40)
+          echo "name=issue-${ISSUE_NUMBER}-${SLUG}" >> $GITHUB_OUTPUT
+
+      - name: Configure git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Create feature branch
+        run: git checkout -b ${{ steps.branch.outputs.name }}
+
+      - name: Generate code with Gemini
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+          ISSUE_TITLE: ${{ github.event.issue.title }}
+          ISSUE_BODY: ${{ github.event.issue.body }}
+        run: node scripts/gemini-generate.mjs
+
+      - name: Commit and push
+        run: |
+          git add -A
+          git commit -m "feat: gemini preview for issue #${{ github.event.issue.number }}"
+          git push origin ${{ steps.branch.outputs.name }}

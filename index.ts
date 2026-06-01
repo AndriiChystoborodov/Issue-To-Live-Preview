@@ -14,10 +14,10 @@ import pRetry, { AbortError } from 'p-retry';
 dotenv.config();
 
 // Extract necessary API keys and tokens
-const { GEMINI_API_KEY, SLACK_BOT_TOKEN, SLACK_APP_TOKEN } = process.env;
+const { GEMINI_API_KEY, SLACK_BOT_TOKEN, SLACK_APP_TOKEN, GITHUB_TOKEN } = process.env;
 
 // Fail-fast mechanism: abort startup if essential variables are missing
-if (!GEMINI_API_KEY || !SLACK_BOT_TOKEN || !SLACK_APP_TOKEN) {
+if (!GEMINI_API_KEY || !SLACK_BOT_TOKEN || !SLACK_APP_TOKEN || !GITHUB_TOKEN) {
   throw new Error("Missing required environment variables. Please check your .env file.");
 }
 
@@ -108,7 +108,82 @@ async function generateContentWithRetry(
     },
   });
 }
+  interface GitHubIssue {
+  number: number;
+  title: string;
+  body: string;
+  html_url: string;
+}
 
+interface QualificationResult {
+  isFeatureRequest: boolean;
+  summary: string;
+  matchedIssue: { number: number; title: string; url: string } | null;
+}
+const GITHUB_OWNER = 'AndriiChystoborodov';
+const GITHUB_REPO = 'Issue-To-Live-Preview';
+async function fetchOpenIssues(): Promise<GitHubIssue[]> {
+  const res = await fetch(
+    `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/issues?state=open&per_page=50`,
+    {
+      headers: {
+        'Authorization': `Bearer ${GITHUB_TOKEN}`,
+        'Accept': 'application/vnd.github+json',
+        'X-GitHub-Api-Version': '2022-11-28',
+      },
+    }
+  );
+  return res.json() as Promise<GitHubIssue[]>;
+}
+
+async function createGitHubIssue(title: string, body: string): Promise<{ number: number; html_url: string }> {
+  const res = await fetch(
+    `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/issues`,
+    {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${GITHUB_TOKEN}`,
+        'Accept': 'application/vnd.github+json',
+        'X-GitHub-Api-Version': '2022-11-28',
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ title, body }),
+    }
+  );
+  return res.json() as Promise<{ number: number; html_url: string }>;
+}
+
+async function qualifyRequest(userText: string, issues: GitHubIssue[], userName: string): Promise<QualificationResult> {
+  const issueList = issues.length > 0
+    ? issues.map(i => `#${i.number}: ${i.title} — ${i.html_url}`).join('\n')
+    : 'No open issues.';
+
+  const prompt = `You are a project request qualifier. Analyze the Slack message below and respond with ONLY valid JSON — no markdown, no code fences.
+
+Slack message from ${userName}: "${userText}"
+
+Open GitHub issues:
+${issueList}
+
+Respond in this exact JSON shape:
+{
+  "isFeatureRequest": true or false,
+  "summary": "one-sentence summary of the request, or empty string if not a feature request",
+  "matchedIssue": null or { "number": 42, "title": "issue title", "url": "https://github.com/..." }
+}
+
+Rules:
+- isFeatureRequest is true only if the message describes a UI change, new feature, or bug to fix on the frontend
+- matchedIssue is non-null only if an existing open issue clearly covers the same request
+- If uncertain whether it matches, set matchedIssue to null (prefer creating a new issue over silently ignoring)`;
+
+  const result = await generateContentWithRetry({
+    model: 'gemini-2.5-flash',
+    contents: [{ role: 'user', parts: [{ text: prompt }] }],
+  });
+
+  return JSON.parse(result.text.trim()) as QualificationResult;
+}
 /**
  * Initialize the Slack App.
  * This is now a two-step process:
@@ -272,6 +347,7 @@ app.message(async ({ message, say, client, context }) => {
     } : null,
     blocks
   };
+  const userName = messageMetadata.userInfo?.real_name || messageMetadata.userInfo?.name || 'the user';
 
   // For debugging purposes, you can uncomment the following line to see the extracted metadata in the console:
   // console.log("Extracted Message Metadata:", JSON.stringify(messageMetadata, null, 2));
@@ -321,7 +397,38 @@ app.message(async ({ message, say, client, context }) => {
         return;
       }
     }
+    // ----------------------------------------------------------------------
+    // 1.5. Qualification (new threads only)
+    // ----------------------------------------------------------------------
+      if (isNewThread) {
+  console.log(`[Session: ${sessionId}] Step 1.5: Running qualification...`);
+  const openIssues = await fetchOpenIssues();
+  const qualification = await qualifyRequest(userText, openIssues, userName);
+  console.log(`[Session: ${sessionId}] Qualification result:`, JSON.stringify(qualification));
 
+  if (qualification.isFeatureRequest) {
+    if (qualification.matchedIssue) {
+      await say({
+        text: `This request is already tracked in issue #${qualification.matchedIssue.number}: *${qualification.matchedIssue.title}*\n${qualification.matchedIssue.url}`,
+        thread_ts: threadTs,
+      });
+      return;
+    }
+
+    const issue = await createGitHubIssue(
+      `[Bot] ${qualification.summary}`,
+      `**Requested by:** ${userName} via Slack\n\n${userText}`
+    );
+    await say({
+      text: `Got it! I've logged your request as issue #${issue.number} and a live preview is being generated 🔨\n${issue.html_url}`,
+      thread_ts: threadTs,
+    });
+    return;
+  }
+
+  // Not a feature request — fall through to normal chat
+  console.log(`[Session: ${sessionId}] Not a feature request, continuing to chat.`);
+}
     // ----------------------------------------------------------------------
     // 2. State Management
     // ----------------------------------------------------------------------
@@ -352,8 +459,6 @@ app.message(async ({ message, say, client, context }) => {
      * We pass the accumulated history for this thread to maintain conversation context.
      * Strict OWASP-aligned system instructions enforce professional boundaries and data security.
      */
-    const userName = messageMetadata.userInfo?.real_name || messageMetadata.userInfo?.name || 'the user';
-
     console.log(`[Session: ${sessionId}] Step 3: Executing LLM generation...`);
     const result = await generateContentWithRetry({
       model: 'gemini-2.5-flash',
